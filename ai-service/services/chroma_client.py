@@ -4,31 +4,29 @@ import chromadb
 
 class ChromaClient:
     def __init__(self):
-        # ✅ Persistent DB (auto handled)
         self.client = chromadb.Client(
             Settings(
                 persist_directory="chroma_db"
             )
         )
 
-        # ✅ Create/Get collection
         self.collection = self.client.get_or_create_collection(
             name="fraud_collection"
         )
 
-    # ✅ Add data
     def add_data(self, texts):
+        existing_count = self.collection.count()
+
         for i, text in enumerate(texts):
             self.collection.add(
                 documents=[text],
-                ids=[str(i)]
+                ids=[str(existing_count + i)]
             )
 
-    # ✅ Query data
     def query(self, query_text):
         results = self.collection.query(
             query_texts=[query_text],
-            n_results=2
+            n_results=3
         )
 
         return results["documents"]
