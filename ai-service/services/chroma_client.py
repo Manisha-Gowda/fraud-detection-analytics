@@ -13,15 +13,26 @@ collection = client.get_or_create_collection(name="fraud_docs")
 
 # 🔹 Add documents to DB
 def add_documents(docs):
-    embeddings = model.encode(docs)
+    all_chunks = []
+    ids = []
 
     for i, doc in enumerate(docs):
-        collection.add(
-            documents=[doc],
-            embeddings=[embeddings[i].tolist()],
-            ids=[str(i)]
-        )
+        chunks = chunk_text(doc)
+        for j, chunk in enumerate(chunks):
+            all_chunks.append(chunk)
+            ids.append(f"{i}_{j}")
 
+    if not all_chunks:
+        return
+
+    embeddings = model.encode(all_chunks)
+
+    collection.add(
+        documents=all_chunks,
+        embeddings=[e.tolist() for e in embeddings],
+        ids=ids
+    )
+    print("Total chunks created:", len(all_chunks))
 
 # 🔹 Query similar documents
 def query_documents(query_text):
@@ -33,3 +44,15 @@ def query_documents(query_text):
     )
 
     return results["documents"]
+
+def chunk_text(text, chunk_size=500, overlap=50):
+    chunks = []
+    start = 0
+
+    while start < len(text):
+        end = start + chunk_size
+        chunk = text[start:end]
+        chunks.append(chunk)
+        start += chunk_size - overlap
+
+    return chunks
