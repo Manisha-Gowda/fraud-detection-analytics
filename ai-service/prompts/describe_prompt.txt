@@ -5,16 +5,20 @@ Analyze the given transaction or activity and provide a professional fraud risk 
 Input:
 {text}
 
-Strictly follow this output format:
+Return response in JSON format ONLY:
 
-risk_level: (Low / Medium / High)
-explanation: (1-2 concise sentences explaining the reasoning)
-key_indicators:
-- indicator 1
-- indicator 2
-- indicator 3
+{
+  "risk_level": "Low | Medium | High",
+  "explanation": "1-2 concise sentences explaining the reasoning",
+  "key_indicators": [
+    "indicator 1",
+    "indicator 2",
+    "indicator 3"
+  ]
+}
 
 Rules:
-- Be clear and professional
-- Do not add extra text outside the format
-- Keep explanation concise and factual
+- Output must be valid JSON only
+- Do not include any extra text outside JSON
+- Keep explanation concise and professional
+- If multiple countries or unusual geographic activity is detected, risk_level should be High
