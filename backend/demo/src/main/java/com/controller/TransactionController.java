@@ -11,13 +11,12 @@ import java.util.List;
 public class TransactionController {
 
     @Autowired
-    private TransactionService service;
+private TransactionService service;
 
-    // CREATE transaction
-    @PostMapping
-    public Transaction createTransaction(@RequestBody Transaction transaction) {
-        return service.saveTransaction(transaction); // ✅ correct method
-    }
+@PostMapping
+public Transaction createTransaction(@RequestBody Transaction transaction) {
+    return service.processTransaction(transaction);
+}
 
     // GET all transactions
     @GetMapping

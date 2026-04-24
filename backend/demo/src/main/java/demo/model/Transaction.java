@@ -1,40 +1,50 @@
 package com.example.demo.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
-import java.time.LocalDateTime;
 
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-
-@Entity
+@Entity   // 🔥 VERY IMPORTANT
 @Table(name = "transactions")
-@Data
-@EntityListeners(AuditingEntityListener.class)
 public class Transaction {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "user_id")
     private Long userId;
+    private double amount;
+    private boolean flagged;
 
-    @Column(name = "amount")
-    private Double amount;
+    // Getter & Setter
 
-    @Column(name = "type")
-    private String type;
+    public Long getId() {
+        return id;
+    }
 
-    @Column(name = "status")
-    private String status;
+    public Long getUserId() {
+        return userId;
+    }
 
-    @CreatedDate
-    @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
+    public double getAmount() {
+        return amount;
+    }
 
-    @LastModifiedDate
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    public boolean isFlagged() {
+        return flagged;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
+
+    public void setAmount(double amount) {
+        this.amount = amount;
+    }
+
+    public void setFlagged(boolean flagged) {
+        this.flagged = flagged;
+    }
 }
