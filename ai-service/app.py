@@ -1,25 +1,35 @@
-from flask import Flask
+from flask import Flask, jsonify
 from flask_cors import CORS
+import logging
 
-# Import blueprints
+# 🔹 Import blueprint
 from routes.describe import describe_bp
 
-def create_app():
-    app = Flask(__name__)
-    CORS(app)
+app = Flask(__name__)
+CORS(app)
+# 🔹 Register blueprint
+app.register_blueprint(describe_bp)
 
-    # Register all blueprints here
-    app.register_blueprint(describe_bp)
-
-    # Health check endpoint (required)
-    @app.route("/health")
-    def health():
-        return {"status": "ok"}
-
-    return app
+# 🔹 Logging setup
+logging.basicConfig(level=logging.INFO)
 
 
-app = create_app()
+
+# 🔹 Health Check Endpoint
+@app.route("/health", methods=["GET"])
+def health():
+    return jsonify({"status": "ok"}), 200
+
+
+# 🔹 Global Error Handler
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    logging.error(f"Unhandled Exception: {str(e)}")
+    return jsonify({
+        "status": "error",
+        "message": "Internal server error"
+    }), 500
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(debug=True)

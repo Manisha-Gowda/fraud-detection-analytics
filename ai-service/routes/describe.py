@@ -1,46 +1,46 @@
 from flask import Blueprint, request, jsonify
 from datetime import datetime
 import json
+import logging
 
-# 🔹 RAG + Groq
+# 🔹 Services
 from services.chroma_client import query_documents
 from services.groq_client import generate_response
 
 describe_bp = Blueprint("describe", __name__)
 
 
-# =========================================================
 # 🔹 Utility: Load Prompt
-# =========================================================
+
 def load_prompt():
     with open("prompts/describe_prompt.txt", "r") as file:
         return file.read()
 
 
-# =========================================================
-# 🔹 Endpoint 1: /describe (AI + RAG Analysis)
-# =========================================================
+
+# 🔹 Endpoint 1: /describe
+
 @describe_bp.route("/describe", methods=["POST"])
 def describe():
     data = request.get_json()
 
-    # ✅ Input validation
     if not data or "text" not in data:
-        return jsonify({"error": "text field is required"}), 400
+        return jsonify({"status": "error", "message": "text field is required"}), 400
 
     text = data["text"]
+    logging.info(f"/describe called with input: {text}")
 
-    # ✅ Load prompt
+    # 🔹 Load prompt
     base_prompt = load_prompt().replace("{text}", text)
 
-    # ✅ RAG context
+    # 🔹 RAG context
     context_docs = query_documents(text)
     context = ""
 
     if context_docs and len(context_docs) > 0:
         context = "\n".join(context_docs[0])
 
-    # ✅ Final prompt
+    # 🔹 Final prompt
     final_prompt = f"""
 You are a fraud detection expert.
 
@@ -51,14 +51,10 @@ Context:
 """
 
     try:
-        # ✅ Call Groq
         ai_output = generate_response(final_prompt)
-
-        # ✅ Parse JSON response
         parsed_output = json.loads(ai_output)
-
     except Exception as e:
-        print("Describe Error:", e)
+        logging.error(f"/describe error: {str(e)}")
         parsed_output = {
             "risk_level": "Unknown",
             "explanation": "Error generating response",
@@ -66,22 +62,24 @@ Context:
         }
 
     return jsonify({
-        "analysis": parsed_output,
+        "status": "success",
+        "data": parsed_output,
         "generated_at": datetime.utcnow().isoformat()
     })
 
 
-# =========================================================
-# 🔹 Endpoint 2: /recommend (Static Actions)
-# =========================================================
+
+# 🔹 Endpoint 2: /recommend
+
 @describe_bp.route("/recommend", methods=["POST"])
 def recommend():
     data = request.get_json()
 
     if not data or "text" not in data:
-        return jsonify({"error": "text field is required"}), 400
+        return jsonify({"status": "error", "message": "text field is required"}), 400
 
     text = data["text"]
+    logging.info(f"/recommend called with input: {text}")
 
     recommendations = [
         {
@@ -102,61 +100,59 @@ def recommend():
     ]
 
     return jsonify({
-        "recommendations": recommendations
+        "status": "success",
+        "data": recommendations
     })
 
 
 # =========================================================
-# 🔹 Endpoint 3: /generate-report (Structured Report)
-# =========================================================
+# 🔹 Endpoint 3: /generate-report
 @describe_bp.route("/generate-report", methods=["POST"])
 def generate_report():
     data = request.get_json()
 
     if not data or "text" not in data:
-        return jsonify({"error": "text field is required"}), 400
+        return jsonify({"status": "error", "message": "text field is required"}), 400
 
     text = data["text"]
+    logging.info(f"/generate-report called with input: {text}")
 
-    # ✅ RAG context
+    # 🔹 RAG context
     context_docs = query_documents(text)
     context = ""
 
     if context_docs and len(context_docs) > 0:
         context = "\n".join(context_docs[0])
 
-    # ✅ Prompt
+    # 🔹 Prompt
     prompt = f"""
-    You are a fraud analysis expert.
+You are a fraud analysis expert.
 
-    Context:
-    {context}
+Context:
+{context}
 
-    User Input:
-    {text}
+User Input:
+{text}
 
-    Return JSON ONLY in this exact format:
+Return JSON ONLY in this exact format:
 
-    {{
-    "title": "",
-    "executive_summary": "",
-    "overview": "",
-    "top_items": ["item1", "item2", "item3"],
-    "recommendations": ["rec1", "rec2", "rec3"]
-    }}
-
-    Rules:
-    - top_items must be a list of short strings
-    - recommendations must be a list of short actionable strings
-    - Do not return objects inside arrays
-    - No extra text outside JSON
-    """
+{{
+  "title": "",
+  "executive_summary": "",
+  "overview": "",
+  "top_items": ["item1", "item2"],
+  "recommendations": ["rec1", "rec2"]
+}}
+"""
 
     try:
         ai_output = generate_response(prompt)
         parsed_output = json.loads(ai_output)
     except Exception as e:
-        print("Report Error:", e)
+        logging.error(f"/generate-report error: {str(e)}")
         parsed_output = {"error": "Failed to generate report"}
 
-    return jsonify(parsed_output)
+    return jsonify({
+        "status": "success",
+        "data": parsed_output
+    })
