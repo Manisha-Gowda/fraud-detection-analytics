@@ -13,14 +13,11 @@ health_bp = Blueprint("health", __name__)
 def health():
     uptime = int(time.time() - start_time)
 
-    # ✅ move inside function (dynamic update)
-    cache_stats = cache.get_stats()
-
     return jsonify({
         "status": "healthy",
         "model": groq.model,
         "avg_response_time_ms": round(groq.get_avg_response_time(), 2),
         "chroma_doc_count": chroma.collection.count(),
         "uptime_seconds": uptime,
-        "cache": cache_stats
+        "cache": cache.get_stats()
     })

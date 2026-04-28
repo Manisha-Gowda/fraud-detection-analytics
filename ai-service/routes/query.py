@@ -1,16 +1,13 @@
 from flask import Blueprint, request, jsonify
-from services.groq_client import GroqClient
-from services.chroma_client import ChromaClient
-from services.cache_client import CacheClient
+import hashlib
+import json
+import time
+
 from services.shared import groq_client as groq
 from services.shared import cache_client as cache
 from services.shared import chroma_client as chroma
-import hashlib
-import json
 
 query_bp = Blueprint("query", __name__)
-
-
 
 
 def load_prompt():
@@ -18,7 +15,6 @@ def load_prompt():
         return f.read()
 
 
-# ✅ Generate SHA256 cache key
 def generate_cache_key(question):
     return hashlib.sha256(question.encode()).hexdigest()
 
@@ -33,35 +29,46 @@ def query():
 
         question = data["question"]
 
-        # 🔥 Step 1: Check cache
         key = generate_cache_key(question)
+
+        # 🔥 Check cache
         cached = cache.get(key)
-
         if cached:
-            return jsonify(json.loads(cached))
+            cached_data = json.loads(cached)
+            cached_data["meta"]["cached"] = True
+            return jsonify(cached_data)
 
-        # 🔥 Step 2: Normal pipeline
+        # 🔥 RAG pipeline
         docs = chroma.query(question)
         sources = docs[0] if docs else []
 
         context = "\n".join([f"- {doc}" for doc in sources])
 
         prompt_template = load_prompt()
+        prompt = prompt_template.format(context=context, question=question)
 
-        prompt = prompt_template.format(
-            context=context,
-            question=question
-        )
-
+        # 🔥 Timing
+        start = time.time()
         answer = groq.generate(prompt)
+        end = time.time()
+
+        response_time = int((end - start) * 1000)
 
         response = {
-            "answer": answer,
-            "sources": sources,
-            "confidence": round(len(sources) / 3, 2)
+            "data": {
+                "answer": answer,
+                "sources": sources
+            },
+            "meta": {
+                "confidence": round(len(sources) / 3, 2),
+                "model_used": groq.model,
+                "tokens_used": len(prompt.split()),
+                "response_time_ms": response_time,
+                "cached": False
+            }
         }
 
-        # 🔥 Step 3: Store in cache (15 min TTL handled in client)
+        # 🔥 Store in cache
         cache.set(key, json.dumps(response))
 
         return jsonify(response)
